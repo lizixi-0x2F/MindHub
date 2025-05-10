@@ -28,122 +28,213 @@ struct EmotionTrendChartView: View {
 
 struct DashboardView: View {
     @EnvironmentObject var journalViewModel: JournalViewModel
-    @EnvironmentObject var appSettings: AppSettings
-    
-    @State private var showNewEntrySheet = false
-    @State private var isRefreshing = false
-    @State private var dataLoaded = false
     
     var body: some View {
         NavigationView {
             ScrollView {
-                if dataLoaded {
-                    VStack(spacing: 16) {
-                        // 用户欢迎卡片
-                        WelcomeCard()
-                            .accessibilityIdentifier("dashboard-welcome-card")
-                        
-                        // 今日日记
-                        SectionCard(title: "今日日记", showDivider: false) {
-                            TodayJournalsView(onNewEntry: {
-                                showNewEntrySheet = true
-                            })
-                            .accessibilityIdentifier("today-journals-view")
-                        }
-                        .accessibilityIdentifier("today-journals-section")
-                        
-                        // GitHub风格日记贡献图
-                        SectionCard(title: "日记记录情况") {
-                            GitHubStyleContributionView(entries: journalViewModel.entries)
-                                .frame(height: 160)
-                                .accessibilityIdentifier("github-contribution-view")
-                        }
-                        .accessibilityIdentifier("journal-contribution-section")
-                        
-                        // 情绪象限散点图
-                        SectionCard(title: "情绪象限分布") {
-                            EmotionQuadrantView(entries: journalViewModel.entries)
-                                .frame(height: 320)
-                                .accessibilityIdentifier("emotion-quadrant-view")
-                        }
-                        .accessibilityIdentifier("emotion-quadrant-section")
-                        
-                        // 情绪趋势线图
-                        SectionCard(title: "情绪变化趋势") {
-                            EmotionTrendChartView(entries: journalViewModel.entries)
-                                .frame(height: 250)
-                                .accessibilityIdentifier("emotion-trend-chart")
-                        }
-                        .accessibilityIdentifier("emotion-trend-section")
-                        
-                        // 情感洞察
-                        SectionCard(title: "情感洞察") {
-                            EmotionInsightsView()
-                                .accessibilityIdentifier("emotion-insights-view")
-                        }
-                        .accessibilityIdentifier("emotion-insights-section")
-                        
-                        // 添加底部间距
-                        Spacer()
-                            .frame(height: 20)
-                    }
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
-                    .accessibilityIdentifier("dashboard-content")
-                } else {
-                    // 显示加载状态
-                    VStack {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .scaleEffect(1.5)
-                        
-                        Text("加载中...")
-                            .font(.headline)
-                            .padding(.top, 20)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .padding()
-                    .accessibilityIdentifier("dashboard-loading")
+                VStack(spacing: 20) {
+                    // 统计卡片
+                    StatisticsCard(
+                        title: "日记统计",
+                        items: [
+                            ("总日记数", "\(journalViewModel.entries.count)"),
+                            ("收藏数量", "\(journalViewModel.entries.filter { $0.isFavorite }.count)"),
+                            ("本周日记", "\(getEntriesCount(days: 7))")
+                        ]
+                    )
+                    
+                    // 心情分布
+                    MoodDistributionCard(
+                        title: "心情分布",
+                        entries: journalViewModel.entries
+                    )
+                    
+                    // 写作日历
+                    WritingCalendarCard(
+                        title: "写作日历",
+                        entries: journalViewModel.entries
+                    )
                 }
+                .padding()
             }
-            .navigationTitle("心情日记")
-            .accessibilityIdentifier("dashboard-title")
-            .refreshable {
-                await refreshData()
-            }
+            .navigationTitle("统计")
             .onAppear {
-                // 初始化数据
-                loadInitialData()
+                journalViewModel.loadEntries()
             }
-            .sheet(isPresented: $showNewEntrySheet) {
-                NewJournalEntryView(
-                    emotionAnalysisManager: EmotionAnalysisManager()
-                ) { newEntry in
-                    journalViewModel.addEntry(newEntry)
+        }
+    }
+    
+    // 获取指定天数内的日记数量
+    private func getEntriesCount(days: Int) -> Int {
+        let calendar = Calendar.current
+        let today = Date()
+        let startDate = calendar.date(byAdding: .day, value: -days, to: today)!
+        
+        return journalViewModel.entries.filter { 
+            $0.date >= startDate && $0.date <= today 
+        }.count
+    }
+}
+
+// 统计卡片视图
+struct StatisticsCard: View {
+    let title: String
+    let items: [(String, String)]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+                .padding(.bottom, 5)
+            
+            ForEach(items, id: \.0) { item in
+                HStack {
+                    Text(item.0)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text(item.1)
+                        .fontWeight(.medium)
+                }
+                .padding(.vertical, 5)
+                
+                if item.0 != items.last?.0 {
+                    Divider()
                 }
             }
         }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
+}
+
+// 心情分布卡片
+struct MoodDistributionCard: View {
+    let title: String
+    let entries: [JournalEntry]
     
-    // 初始化加载数据
-    private func loadInitialData() {
-        DispatchQueue.main.async {
-            // 设置一个短暂的延迟，确保数据能够正确加载
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                dataLoaded = true
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+                .padding(.bottom, 5)
+            
+            if entries.isEmpty {
+                Text("暂无数据")
+                    .foregroundColor(.secondary)
+                    .padding()
+            } else {
+                VStack(spacing: 15) {
+                    ForEach(moodCounts.sorted(by: { $0.value > $1.value }), id: \.key) { mood, count in
+                        HStack {
+                            Text("\(mood.emoji) \(mood.rawValue)")
+                            
+                            Spacer()
+                            
+                            Text("\(count)")
+                                .foregroundColor(.secondary)
+                            
+                            ProgressView(value: Double(count), total: Double(entries.count))
+                                .frame(width: 100)
+                        }
+                    }
+                }
             }
         }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
     
-    // 刷新数据
-    private func refreshData() async {
-        isRefreshing = true
+    // 计算各种心情的数量
+    private var moodCounts: [Mood: Int] {
+        var counts: [Mood: Int] = [:]
         
-        // 模拟网络请求
-        try? await Task.sleep(nanoseconds: 1_000_000_000)
+        for mood in Mood.allCases {
+            counts[mood] = 0
+        }
         
-        isRefreshing = false
+        for entry in entries {
+            counts[entry.mood, default: 0] += 1
+        }
+        
+        return counts
+    }
+}
+
+// 写作日历卡片
+struct WritingCalendarCard: View {
+    let title: String
+    let entries: [JournalEntry]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+                .padding(.bottom, 5)
+            
+            if entries.isEmpty {
+                Text("暂无数据")
+                    .foregroundColor(.secondary)
+                    .padding()
+            } else {
+                HStack(spacing: 4) {
+                    ForEach(0..<7) { index in
+                        let date = Calendar.current.date(byAdding: .day, value: -6 + index, to: Date())!
+                        let count = entriesCount(for: date)
+                        
+                        VStack(spacing: 4) {
+                            Text(weekdaySymbol(for: date))
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(cellColor(for: count))
+                                .frame(height: 30)
+                            
+                            Text("\(count)")
+                                .font(.caption)
+                        }
+                    }
+                }
+                .padding(.vertical)
+            }
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+    }
+    
+    // 获取指定日期的日记数量
+    private func entriesCount(for date: Date) -> Int {
+        let calendar = Calendar.current
+        return entries.filter { entry in
+            calendar.isDate(entry.date, inSameDayAs: date)
+        }.count
+    }
+    
+    // 获取星期几的缩写
+    private func weekdaySymbol(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "E"
+        return formatter.string(from: date)
+    }
+    
+    // 根据日记数量决定单元格颜色
+    private func cellColor(for count: Int) -> Color {
+        switch count {
+        case 0:
+            return Color.gray.opacity(0.2)
+        case 1:
+            return Color.blue.opacity(0.3)
+        case 2:
+            return Color.blue.opacity(0.5)
+        default:
+            return Color.blue.opacity(0.8)
+        }
     }
 }
 
@@ -605,6 +696,5 @@ struct DashboardView_Previews: PreviewProvider {
     static var previews: some View {
         DashboardView()
             .environmentObject(JournalViewModel())
-            .environmentObject(AppSettings())
     }
 } 

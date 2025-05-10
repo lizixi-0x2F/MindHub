@@ -17,26 +17,29 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
+    <string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key>
-    <string>1</string>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>
-        <false/>
+        <true/>
     </dict>
+    <key>UIApplicationSupportsIndirectInputEvents</key>
+    <true/>
     <key>UILaunchScreen</key>
     <dict/>
     <key>UIRequiredDeviceCapabilities</key>
     <array>
-        <string>healthkit</string>
-        <string>arm64</string>
+        <string>armv7</string>
     </array>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
     <key>UISupportedInterfaceOrientations~ipad</key>
     <array>
@@ -45,27 +48,6 @@
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>
-    <key>BGTaskSchedulerPermittedIdentifiers</key>
-    <array>
-        <string>com.diary.ozlee.mindhub.emotionanalysis</string>
-        <string>com.diary.ozlee.mindhub.dataprocessing</string>
-        <string>com.diary.ozlee.mindhub.healthdatasync</string>
-        <string>com.diary.ozlee.mindhub.refresh</string>
-    </array>
-    <key>UIBackgroundModes</key>
-    <array>
-        <string>remote-notification</string>
-        <string>processing</string>
-        <string>fetch</string>
-    </array>
-    <key>NSHealthShareUsageDescription</key>
-    <string>MindHub需要访问您的心率变异性(HRV)数据，以帮助您跟踪情绪状态和压力水平</string>
-    <key>NSHealthUpdateUsageDescription</key>
-    <string>MindHub需要保存呼吸练习期间收集的心率变异性数据，以帮助您分析正念练习效果</string>
-    <key>HuggingFaceAPIToken</key>
-    <string>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</string>
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>MindHub需要网络连接来进行情感分析和同步数据。</string>
     <key>NSCameraUsageDescription</key>
     <string>MindHub需要相机权限来让您拍摄并记录重要时刻</string>
     <key>NSPhotoLibraryUsageDescription</key>
@@ -73,6 +55,6 @@
     <key>NSMicrophoneUsageDescription</key>
     <string>MindHub需要麦克风权限来让您录制语音笔记</string>
     <key>NSFaceIDUsageDescription</key>
-    <string>MindHub使用Face ID来保护您的个人日记和情感数据安全</string>
+    <string>MindHub使用Face ID来保护您的个人日记数据安全</string>
 </dict>
 </plist> 
