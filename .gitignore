@@ -68,12 +68,16 @@ crash_logs/
 *.log
 
 ## 临时部署脚本和文档
-deploy_simple.sh
 ios-deploy-app.sh
 build_and_deploy.sh
 *_DEPLOYMENT_*.md
 *-deploy-*.sh
 *_SUMMARY.md
+
+# 保留新创建的部署脚本
+!deploy_to_device.sh
+!quick_deploy.sh
+!DEVICE_DEPLOYMENT.md
 
 ## 临时备份文件
 *.bak
