@@ -50,6 +50,9 @@ xcuserdata/
 
 ## 项目特定的忽略
 crash_logs/
+**/crash_logs/**
+**/*.crash
+**/*.ips
 *.cer
 *.mobileprovision
 *.provisionprofile
@@ -64,7 +67,15 @@ crash_logs/
 ## 日志文件
 *.log
 
-## 临时部署脚本
+## 临时部署脚本和文档
 deploy_simple.sh
 ios-deploy-app.sh
-build_and_deploy.sh 
+build_and_deploy.sh
+*_DEPLOYMENT_*.md
+*-deploy-*.sh
+*_SUMMARY.md
+
+## 临时备份文件
+*.bak
+*.tmp
+*~
