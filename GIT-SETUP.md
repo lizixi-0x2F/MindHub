@@ -11,25 +11,17 @@
    git config --global user.email "your.email@example.com"
    ```
 
-## 初始化并上传代码
+## 仓库当前状态
 
-在项目根目录执行以下命令：
+本地Git仓库已初始化，包含两次提交：
+- 初始提交：包含基本项目文件、文档和配置
+- 清理提交：移除了临时文件和部署脚本，更新了文档
+
+接下来，您需要将本地仓库推送到GitHub：
 
 ```bash
-# 初始化Git仓库
-git init
-
-# 添加所有文件（.gitignore会过滤不需要的文件）
-git add .
-
-# 首次提交
-git commit -m "Initial commit: MindHub情绪日记应用"
-
 # 添加GitHub远程仓库
 git remote add origin https://github.com/lizixi-0x2F/MindHub.git
-
-# 如果您的默认分支是master而不是main，可以重命名
-git branch -M main
 
 # 推送到GitHub
 git push -u origin main
@@ -57,5 +49,10 @@ git push
 
 ## 注意事项
 
-- 确保崩溃日志、临时文件和敏感信息已被.gitignore排除
+- 已确保崩溃日志、临时文件和敏感信息被.gitignore排除
+- 项目已完成清理，包括：
+  - 移除了临时部署脚本
+  - 删除了崩溃日志目录
+  - 更新了变更日志
+  - 完善了文档
 - 首次推送可能需要验证GitHub凭据 
