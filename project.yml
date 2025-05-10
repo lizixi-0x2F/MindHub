@@ -1,0 +1,51 @@
+name: MindHub
+options:
+  bundleIdPrefix: com.diary.ozlee
+  deploymentTarget:
+    iOS: 18.0
+  developmentLanguage: en
+
+settings:
+  base:
+    MARKETING_VERSION: 1.0.0
+    CURRENT_PROJECT_VERSION: 1
+  configFiles:
+    Debug: signing.xcconfig
+    Release: signing.xcconfig
+
+targets:
+  MindHub:
+    type: application
+    platform: iOS
+    sources:
+      - path: MindHub
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.diary.ozlee.mindhub
+        INFOPLIST_FILE: MindHub/Info.plist
+        DEVELOPMENT_TEAM: UH9S955TU9
+    entitlements:
+      path: MindHub.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+    dependencies:
+      - sdk: HealthKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: CoreML.framework
+      - sdk: BackgroundTasks.framework
+      - sdk: NaturalLanguage.framework
+      - sdk: UserNotifications.framework
+  
+  MindHubUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: 
+      iOS: 18.0
+    sources:
+      - path: MindHubUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.diary.ozlee.mindhub.uitests
+        DEVELOPMENT_TEAM: UH9S955TU9
+    dependencies:
+      - target: MindHub 

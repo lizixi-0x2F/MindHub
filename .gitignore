@@ -1,0 +1,70 @@
+# Xcode
+#
+# gitignore贡献者: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
+
+## 用户特定的文件
+xcuserdata/
+*.xcuserstate
+*.xcuserdatad
+UserInterfaceState.xcuserstate
+
+## 兼容性文件 - Xcode 8及更早版本
+*.xcscmblueprint
+*.xccheckout
+
+## 兼容性文件 - Xcode 3及更早版本
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.pbxuser
+!default.pbxuser
+!default.mode1v3
+!default.mode2v3
+!default.perspectivev3
+
+## Xcode自动生成的文件
+build/
+DerivedData/
+*.moved-aside
+*.xcuserstate
+
+## 各种设置
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+!default.pbxuser
+!default.mode1v3
+!default.mode2v3
+!default.perspectivev3
+xcuserdata/
+
+## App打包文件
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Swift包管理器
+.build/
+.swiftpm/
+
+## 项目特定的忽略
+crash_logs/
+*.cer
+*.mobileprovision
+*.provisionprofile
+*.p12
+
+## 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+## 日志文件
+*.log
+
+## 临时部署脚本
+deploy_simple.sh
+ios-deploy-app.sh
+build_and_deploy.sh 
