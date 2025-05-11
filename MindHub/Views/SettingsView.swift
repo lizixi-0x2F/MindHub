@@ -2,291 +2,170 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var appSettings: AppSettings
-    @EnvironmentObject var healthKitManager: HealthKitManager
-    @EnvironmentObject var emotionAnalysisManager: EmotionAnalysisManager
-    
-    @State private var showingResetAlert = false
-    @State private var showingUserProfileSheet = false
-    @State private var showingAboutSheet = false
-    
-    @AppStorage("colorScheme") private var colorScheme: Int = 0
+    @State private var showingResetConfirmation = false
     
     var body: some View {
         NavigationView {
-            Form {
-                // 用户资料部分
-                Section(header: Text("用户资料")) {
-                    Button(action: {
-                        showingUserProfileSheet = true
-                    }) {
+            ZStack {
+                ThemeColors.background.edgesIgnoringSafeArea(.all)
+                
+                Form {
+                    // 情感分析设置
+                    Section {
+                        Toggle("启用情感分析", isOn: $appSettings.emotionAnalysisEnabled)
+                        
+                        if appSettings.emotionAnalysisEnabled {
+                            Toggle("自动生成周报", isOn: $appSettings.autoGenerateWeeklyReport)
+                            
+                            Toggle("周报通知", isOn: $appSettings.weeklyReportNotificationEnabled)
+                        }
+                        
+                        NavigationLink(destination: EmotionAnalysisInfoView()) {
+                            Text("关于情感分析")
+                        }
+                    }
+                    header: {
+                        Text("情感分析")
+                    }
+                    
+                    // 通知设置
+                    Section {
+                        Toggle("每日提醒", isOn: $appSettings.dailyReminderEnabled)
+                        
+                        if appSettings.dailyReminderEnabled {
+                            DatePicker("提醒时间", 
+                                      selection: Binding(
+                                          get: { Calendar.current.date(bySettingHour: appSettings.reminderHour, minute: appSettings.reminderMinute, second: 0, of: Date()) ?? Date() },
+                                          set: { 
+                                              let components = Calendar.current.dateComponents([.hour, .minute], from: $0)
+                                              appSettings.reminderHour = components.hour ?? 20
+                                              appSettings.reminderMinute = components.minute ?? 0
+                                          }
+                                      ),
+                                      displayedComponents: .hourAndMinute)
+                        }
+                    }
+                    header: {
+                        Text("通知提醒")
+                    }
+                    
+                    // 隐私设置
+                    Section {
+                        Toggle("应用锁定", isOn: $appSettings.appLockEnabled)
+                        
+                        if appSettings.appLockEnabled {
+                            Toggle("使用Face ID/Touch ID", isOn: $appSettings.biometricAuthEnabled)
+                        }
+                        
+                        Toggle("位置记录", isOn: $appSettings.locationTrackingEnabled)
+                    }
+                    header: {
+                        Text("隐私设置")
+                    }
+                    
+                    // 个人信息
+                    Section {
+                        TextField("您的名字", text: $appSettings.userName)
+                            .autocapitalization(.words)
+                    }
+                    header: {
+                        Text("个人信息")
+                    }
+                    
+                    // 数据管理
+                    Section {
+                        Button(action: { showingResetConfirmation = true }) {
+                            Text("重置所有数据")
+                                .foregroundColor(.red)
+                        }
+                    }
+                    header: {
+                        Text("数据管理")
+                    }
+                    
+                    // 关于信息
+                    Section {
                         HStack {
-                            Image(systemName: "person.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                            
-                            VStack(alignment: .leading) {
-                                Text(appSettings.userName.isEmpty ? "设置用户资料" : appSettings.userName)
-                                    .foregroundColor(.primary)
-                                
-                                if !appSettings.userName.isEmpty {
-                                    Text(appSettings.userGender)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            
+                            Text("版本")
                             Spacer()
-                            
+                            Text("1.0.0")
+                                .foregroundColor(ThemeColors.secondaryText)
+                        }
+                        
+                        HStack {
+                            Text("隐私政策")
+                            Spacer()
                             Image(systemName: "chevron.right")
-                                .foregroundColor(.secondary)
+                                .foregroundColor(ThemeColors.secondaryText)
                         }
-                    }
-                }
-                
-                // 应用设置部分
-                Section(header: Text("应用设置")) {
-                    Picker("外观", selection: $colorScheme) {
-                        Text("系统").tag(0)
-                        Text("浅色").tag(1)
-                        Text("深色").tag(2)
-                    }
-                    
-                    Toggle("启用通知", isOn: $appSettings.notificationsEnabled)
-                    
-                    Toggle("启用情感分析", isOn: $appSettings.emotionAnalysisEnabled)
-                    
-                    Toggle("启用健康数据同步", isOn: $appSettings.healthDataSyncEnabled)
-                }
-                
-                // 情感分析设置部分
-                Section(header: Text("情感分析设置")) {
-                    Toggle("自动分析新日记", isOn: $appSettings.autoAnalyzeNewEntries)
-                    
-                    Toggle("显示唤起度-价效象限图", isOn: $appSettings.showEmotionQuadrantChart)
-                    
-                    Toggle("显示情绪趋势图", isOn: $appSettings.showEmotionTrendChart)
-                    
-                    Button("重新分析所有日记") {
-                        reanalyzeAllJournals()
-                    }
-                    .foregroundColor(.blue)
-                }
-                
-                // 提醒设置部分
-                Section(header: Text("提醒设置")) {
-                    DatePicker("日记提醒时间", selection: $appSettings.journalReminderTime, displayedComponents: .hourAndMinute)
-                }
-                
-                // 数据管理部分
-                Section(header: Text("数据管理")) {
-                    Button("导出数据") {
-                        exportData()
-                    }
-                    
-                    Button("备份设置") {
-                        backupSettings()
-                    }
-                    
-                    Button("重置所有设置") {
-                        showingResetAlert = true
-                    }
-                    .foregroundColor(.red)
-                }
-                
-                // 关于部分
-                Section(header: Text("关于")) {
-                    Button(action: {
-                        showingAboutSheet = true
-                    }) {
+                        
                         HStack {
-                            Text("关于 MindHub")
+                            Text("使用条款")
                             Spacer()
-                            Text("v1.0.2")
-                                .foregroundColor(.secondary)
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(ThemeColors.secondaryText)
                         }
                     }
-                    
-                    Link("隐私政策", destination: URL(string: "https://mindhub.app/privacy")!)
-                    
-                    Link("反馈", destination: URL(string: "mailto:support@mindhub.app")!)
+                    header: {
+                        Text("关于")
+                    }
                 }
+                .scrollContentBackground(.hidden)
             }
             .navigationTitle("设置")
-            .alert(isPresented: $showingResetAlert) {
+            .alert(isPresented: $showingResetConfirmation) {
                 Alert(
-                    title: Text("重置所有设置"),
-                    message: Text("这将重置所有应用程序设置。您的日记数据不会被删除。"),
+                    title: Text("重置数据"),
+                    message: Text("此操作将删除所有日记和设置，且无法恢复。确定要继续吗？"),
                     primaryButton: .destructive(Text("重置")) {
-                        resetAllSettings()
+                        appSettings.resetAllSettings()
                     },
                     secondaryButton: .cancel()
                 )
             }
-            .sheet(isPresented: $showingUserProfileSheet) {
-                UserProfileView()
-            }
-            .sheet(isPresented: $showingAboutSheet) {
-                AboutView()
-            }
         }
-        .onChange(of: colorScheme) { oldValue, newValue in
-            setAppAppearance(newValue)
-        }
-    }
-    
-    // 重新分析所有日记
-    private func reanalyzeAllJournals() {
-        // 获取JournalViewModel进行分析
-        DispatchQueue.main.async {
-            NotificationCenter.default.post(name: NSNotification.Name("ReanalyzeAllJournals"), object: nil)
-        }
-    }
-    
-    // 设置应用外观
-    private func setAppAppearance(_ value: Int) {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first else { return }
-        
-        switch value {
-        case 1:
-            window.overrideUserInterfaceStyle = .light
-        case 2:
-            window.overrideUserInterfaceStyle = .dark
-        default:
-            window.overrideUserInterfaceStyle = .unspecified
-        }
-    }
-    
-    // 导出数据
-    private func exportData() {
-        // 实现数据导出功能
-    }
-    
-    // 备份设置
-    private func backupSettings() {
-        // 实现设置备份功能
-    }
-    
-    // 重置所有设置
-    private func resetAllSettings() {
-        appSettings.resetAllSettings()
     }
 }
 
-// 用户资料视图
-struct UserProfileView: View {
-    @Environment(\.presentationMode) var presentationMode
-    @EnvironmentObject var appSettings: AppSettings
-    
-    @State private var userName: String = ""
-    @State private var userGender: String = "未指定"
-    @State private var userBirthday: Date = Date()
-    @State private var showBirthday: Bool = false
-    
-    let genders = ["未指定", "男", "女", "其他"]
-    
+// 情感分析信息视图
+struct EmotionAnalysisInfoView: View {
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("个人信息")) {
-                    TextField("姓名", text: $userName)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Group {
+                    Text("关于情感分析")
+                        .font(.title)
+                        .fontWeight(.bold)
                     
-                    Picker("性别", selection: $userGender) {
-                        ForEach(genders, id: \.self) { gender in
-                            Text(gender).tag(gender)
-                        }
-                    }
+                    Text("MindHub使用苹果原生的自然语言处理(NLP)技术分析您的日记内容，识别文本中的情绪，并提供个性化的反馈和建议。")
                     
-                    Toggle("设置生日", isOn: $showBirthday)
+                    Text("情绪分析模型")
+                        .font(.headline)
                     
-                    if showBirthday {
-                        DatePicker("生日", selection: $userBirthday, displayedComponents: .date)
-                    }
+                    Text("我们使用的是苹果官方提供的自然语言处理框架(Natural Language Framework)，这是一种先进的本地情感分析技术，专门设计用于理解和分析文本中的情感表达。该技术能够识别七种基本情绪：喜悦、悲伤、愤怒、恐惧、厌恶、惊讶和中性。")
+                    
+                    Text("隐私保护")
+                        .font(.headline)
+                    
+                    Text("所有情感分析都在您的设备上本地进行，您的日记内容不会上传到任何服务器。我们重视您的隐私，确保您的个人思想和感受完全保密。")
                 }
                 
-                Section(footer: Text("这些信息仅存储在设备上，不会上传到云端。")) {
-                    Button("保存") {
-                        saveUserProfile()
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
+                Group {
+                    Text("情绪周报")
+                        .font(.headline)
+                    
+                    Text("周报功能会分析您一周内的日记，生成情绪概览、趋势图和象限分布，帮助您更好地了解自己的情绪变化，并提供个性化的建议。")
+                    
+                    Text("唤起度和效价")
+                        .font(.headline)
+                    
+                    Text("我们使用两个维度来描述情绪：\n• 唤起度：表示情绪的强烈程度，从平静到兴奋\n• 效价：表示情绪的正负性，从消极到积极")
                 }
             }
-            .navigationTitle("用户资料")
-            .navigationBarItems(
-                leading: Button("取消") {
-                    presentationMode.wrappedValue.dismiss()
-                }
-            )
-            .onAppear {
-                loadUserProfile()
-            }
+            .padding()
+            .background(ThemeColors.background)
         }
-    }
-    
-    // 加载用户资料
-    private func loadUserProfile() {
-        userName = appSettings.userName
-        userGender = appSettings.userGender
-        
-        if let birthday = appSettings.userBirthday {
-            userBirthday = birthday
-            showBirthday = true
-        }
-    }
-    
-    // 保存用户资料
-    private func saveUserProfile() {
-        appSettings.updateUserInfo(
-            name: userName,
-            birthday: showBirthday ? userBirthday : nil,
-            gender: userGender
-        )
-        
-        presentationMode.wrappedValue.dismiss()
-    }
-}
-
-// 关于视图
-struct AboutView: View {
-    @Environment(\.presentationMode) var presentationMode
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Image(systemName: "brain.head.profile")
-                    .font(.system(size: 80))
-                    .foregroundColor(.blue)
-                    .padding(.top, 50)
-                
-                Text("MindHub")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                
-                Text("版本 1.0.2 (Build 2)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                
-                Spacer()
-                
-                VStack(spacing: 8) {
-                    Text("© 2025 MindHub Team")
-                        .font(.caption)
-                    
-                    Text("保持记录，关注情绪，更好地了解自己")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-                }
-                .padding(.bottom, 30)
-            }
-            .navigationTitle("关于")
-            .navigationBarItems(
-                trailing: Button("完成") {
-                    presentationMode.wrappedValue.dismiss()
-                }
-            )
-        }
+        .navigationTitle("情感分析说明")
     }
 }
 
@@ -294,7 +173,5 @@ struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
         SettingsView()
             .environmentObject(AppSettings())
-            .environmentObject(HealthKitManager())
-            .environmentObject(EmotionAnalysisManager())
     }
 } 

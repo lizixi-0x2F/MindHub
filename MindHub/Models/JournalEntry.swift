@@ -1,33 +1,78 @@
 import Foundation
 import SwiftUI
 
-struct JournalEntry: Identifiable, Codable {
-    var id: UUID
-    var title: String
-    var content: String
-    var date: Date
-    var mood: Mood
-    var tags: [String]
-    var isFavorite: Bool
-    var emotionAnalysisResults: [EmotionAnalysisResult]?
-    var attachments: [Attachment]?
-    var location: Location?
-    var arousal: Double?  // 情绪唤起度 0-1
-    var valence: Double?  // 情绪价效度 0-1
+// 心情枚举
+public enum Mood: String, CaseIterable, Codable {
+    case happy = "开心"
+    case sad = "难过"
+    case angry = "生气"
+    case anxious = "焦虑"
+    case relaxed = "放松"
+    case neutral = "平静"
+    case excited = "兴奋"
     
-    // 初始化
-    init(id: UUID = UUID(), 
-         title: String, 
-         content: String, 
-         date: Date = Date(), 
-         mood: Mood = .neutral, 
-         tags: [String] = [], 
-         isFavorite: Bool = false, 
-         emotionAnalysisResults: [EmotionAnalysisResult]? = nil,
-         attachments: [Attachment]? = nil,
-         location: Location? = nil,
-         arousal: Double? = nil,
-         valence: Double? = nil) {
+    var emoji: String {
+        switch self {
+        case .happy: return "😊"
+        case .sad: return "😢"
+        case .angry: return "😡"
+        case .anxious: return "😰"
+        case .relaxed: return "😌"
+        case .neutral: return "😐"
+        case .excited: return "🤩"
+        }
+    }
+    
+    // 返回所有可选的心情
+    static var all: [Mood] {
+        return [.happy, .sad, .angry, .anxious, .relaxed, .neutral, .excited]
+    }
+    
+    // 获取对应的颜色
+    var color: Color {
+        switch self {
+        case .happy:
+            return .green
+        case .sad:
+            return .purple
+        case .angry, .anxious:
+            return .red
+        case .relaxed:
+            return .blue
+        case .neutral:
+            return .gray
+        case .excited:
+            return .orange
+        }
+    }
+    
+    // 获取默认情绪评分
+    var defaultEmotionScore: Int {
+        switch self {
+        case .happy: return 3
+        case .sad: return -3
+        case .angry: return -4
+        case .anxious: return -2
+        case .relaxed: return 4
+        case .neutral: return 0
+        case .excited: return 5
+        }
+    }
+}
+
+// 日记条目模型
+public struct JournalEntry: Identifiable, Codable {
+    public let id: UUID
+    public var title: String
+    public var content: String
+    public var date: Date
+    public var mood: Mood
+    public var tags: [String]
+    public var isFavorite: Bool
+    public var location: String?
+    public var emotionScore: Int // 情绪评分 -5 到 +5
+    
+    public init(id: UUID = UUID(), title: String, content: String, date: Date = Date(), mood: Mood = .neutral, tags: [String] = [], isFavorite: Bool = false, location: String? = nil, emotionScore: Int? = nil) {
         self.id = id
         self.title = title
         self.content = content
@@ -35,204 +80,51 @@ struct JournalEntry: Identifiable, Codable {
         self.mood = mood
         self.tags = tags
         self.isFavorite = isFavorite
-        self.emotionAnalysisResults = emotionAnalysisResults
-        self.attachments = attachments
         self.location = location
-        self.arousal = arousal
-        self.valence = valence
+        self.emotionScore = emotionScore ?? mood.defaultEmotionScore // 如果没有提供情绪评分，则使用心情默认评分
     }
     
-    // 获取主要情绪
-    func getPrimaryEmotion() -> String? {
-        guard let results = emotionAnalysisResults, !results.isEmpty else {
-            return nil
-        }
-        
-        // 返回分数最高的情绪
-        return results.max(by: { $0.score < $1.score })?.emotion
+    // 格式化日期字符串
+    public var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
     
-    // 获取情绪唤起度
-    func getArousal() -> Double {
-        // 如果已经有计算好的唤起度，直接返回
-        if let arousal = arousal {
-            return arousal
-        }
-        
-        // 否则从情感分析结果中计算
-        guard let results = emotionAnalysisResults, !results.isEmpty else {
-            return 0.5 // 默认中等唤起度
-        }
-        
-        // 计算加权唤起度
-        var totalArousal = 0.0
-        var totalWeight = 0.0
-        
-        for result in results {
-            totalArousal += result.arousal * result.score
-            totalWeight += result.score
-        }
-        
-        return totalWeight > 0 ? totalArousal / totalWeight : 0.5
-    }
-    
-    // 获取情绪价效度
-    func getValence() -> Double {
-        // 如果已经有计算好的价效度，直接返回
-        if let valence = valence {
-            return valence
-        }
-        
-        // 否则从情感分析结果中计算
-        guard let results = emotionAnalysisResults, !results.isEmpty else {
-            return 0.5 // 默认中等价效度
-        }
-        
-        // 计算加权价效度
-        var totalValence = 0.0
-        var totalWeight = 0.0
-        
-        for result in results {
-            totalValence += result.valence * result.score
-            totalWeight += result.score
-        }
-        
-        return totalWeight > 0 ? totalValence / totalWeight : 0.5
-    }
-}
-
-// 心情枚举
-enum Mood: String, Codable, CaseIterable, Identifiable {
-    case veryHappy = "非常开心"
-    case happy = "开心"
-    case neutral = "平静"
-    case sad = "难过"
-    case verySad = "非常难过"
-    case angry = "愤怒"
-    case anxious = "焦虑"
-    case tired = "疲惫"
-    case excited = "兴奋"
-    case confused = "困惑"
-    
-    var id: String { self.rawValue }
-    
-    // 获取心情对应的图标
-    var icon: String {
-        switch self {
-        case .veryHappy: return "😄"
-        case .happy: return "🙂"
-        case .neutral: return "😐"
-        case .sad: return "😔"
-        case .verySad: return "😢"
-        case .angry: return "😠"
-        case .anxious: return "😰"
-        case .tired: return "😴"
-        case .excited: return "🤩"
-        case .confused: return "🤔"
+    // 返回摘要（内容前100个字符）
+    public var summary: String {
+        if content.count <= 100 {
+            return content
+        } else {
+            return String(content.prefix(100)) + "..."
         }
     }
     
-    // 获取心情对应的颜色
-    var color: Color {
-        switch self {
-        case .veryHappy, .excited: return .green
-        case .happy: return .mint
-        case .neutral: return .gray
-        case .sad: return .blue
-        case .verySad: return .indigo
-        case .angry: return .red
-        case .anxious: return .orange
-        case .tired: return .purple
-        case .confused: return .yellow
-        }
+    // 日期的简短文本表示
+    public var dateText: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
     }
     
-    // 获取心情对应的唤起度
-    var arousal: Double {
-        switch self {
-        case .veryHappy: return 0.7
-        case .happy: return 0.6
-        case .neutral: return 0.1
-        case .sad: return 0.3
-        case .verySad: return 0.4
-        case .angry: return 0.9
-        case .anxious: return 0.8
-        case .tired: return 0.2
-        case .excited: return 0.9
-        case .confused: return 0.5
-        }
+    // 心情图标名称
+    public var moodIconName: String {
+        return mood.emoji
     }
     
-    // 获取心情对应的价效度
-    var valence: Double {
-        switch self {
-        case .veryHappy: return 0.9
-        case .happy: return 0.8
-        case .neutral: return 0.5
-        case .sad: return 0.3
-        case .verySad: return 0.1
-        case .angry: return 0.2
-        case .anxious: return 0.3
-        case .tired: return 0.4
-        case .excited: return 0.8
-        case .confused: return 0.4
+    // 获取情绪评分对应的颜色
+    public var emotionScoreColor: Color {
+        return ThemeColors.emotionScoreColor(for: emotionScore)
+    }
+    
+    // 情绪评分文本表示
+    public var emotionScoreText: String {
+        if emotionScore > 0 {
+            return "+\(emotionScore)"
+        } else {
+            return "\(emotionScore)"
         }
     }
 }
-
-// 情感分析结果
-struct EmotionAnalysisResult: Codable, Identifiable {
-    var id: UUID
-    var emotion: String
-    var score: Double
-    var date: Date
-    var arousal: Double = 0.5  // 情绪唤起度 (0-1)
-    var valence: Double = 0.5  // 情绪价效度 (0-1)
-    
-    init(id: UUID = UUID(), emotion: String, score: Double, date: Date = Date(), arousal: Double = 0.5, valence: Double = 0.5) {
-        self.id = id
-        self.emotion = emotion
-        self.score = score
-        self.date = date
-        self.arousal = arousal
-        self.valence = valence
-    }
-}
-
-// 附件
-struct Attachment: Codable, Identifiable {
-    var id: UUID
-    var type: AttachmentType
-    var url: URL
-    var thumbnailURL: URL?
-    var caption: String?
-    
-    init(id: UUID = UUID(), type: AttachmentType, url: URL, thumbnailURL: URL? = nil, caption: String? = nil) {
-        self.id = id
-        self.type = type
-        self.url = url
-        self.thumbnailURL = thumbnailURL
-        self.caption = caption
-    }
-}
-
-// 附件类型
-enum AttachmentType: String, Codable {
-    case image
-    case audio
-    case video
-    case document
-}
-
-// 位置
-struct Location: Codable {
-    var latitude: Double
-    var longitude: Double
-    var name: String?
-    
-    init(latitude: Double, longitude: Double, name: String? = nil) {
-        self.latitude = latitude
-        self.longitude = longitude
-        self.name = name
-    }
-} 

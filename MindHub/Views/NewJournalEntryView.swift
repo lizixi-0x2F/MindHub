@@ -2,270 +2,193 @@ import SwiftUI
 
 struct NewJournalEntryView: View {
     @Environment(\.presentationMode) var presentationMode
+    @State private var title: String = ""
+    @State private var content: String = ""
+    @State private var tags: [String] = []
+    @State private var currentTag: String = ""
+    @State private var isFavorite: Bool = false
+    @State private var location: String = ""
+    @State private var showLocationInput = false
     
-    @State private var title = ""
-    @State private var content = ""
-    @State private var tags = ""
-    @State private var isFavorite = false
-    @State private var isAnalyzing = false
-    @State private var predictedMood: Mood = .neutral
+    var onSave: (JournalEntry) -> Void
     
-    let emotionAnalysisManager: EmotionAnalysisManager
-    let onSave: (JournalEntry) -> Void
+    // 常用标签
+    private var commonTags: [String] {
+        ["工作", "学习", "家庭", "朋友", "旅行", "爱好", "健康", "阅读", "电影", "音乐", "美食", "运动"]
+    }
     
     var body: some View {
         NavigationView {
-            Form {
-                Section(header: Text("标题")) {
-                    TextField("标题", text: $title)
-                        .accessibilityIdentifier("journal-title-input")
-                }
+            ZStack {
+                // 莫奈风格的深蓝色背景
+                ThemeColors.background.edgesIgnoringSafeArea(.all)
                 
-                Section(header: Text("内容")) {
-                    TextEditor(text: $content)
-                        .frame(minHeight: 150)
-                        .accessibilityIdentifier("journal-text-input")
-                }
-                
-                Section(header: Text("标签")) {
-                    TextField("使用逗号分隔标签，例如: 工作, 旅行", text: $tags)
-                        .accessibilityIdentifier("tags-input")
-                }
-                
-                Section {
-                    Toggle("收藏", isOn: $isFavorite)
-                        .accessibilityIdentifier("favorite-toggle")
-                }
-                
-                if !content.isEmpty && content.count > 20 {
-                    Section(header: Text("情感分析")) {
-                        if isAnalyzing {
-                            HStack {
-                                Spacer()
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                                Text("正在分析情感...")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                            }
-                            .accessibilityIdentifier("analyzing-indicator")
-                        } else if !emotionAnalysisManager.emotionResults.isEmpty {
-                            // 显示预测的心情
-                            HStack {
-                                Text("检测到的心情")
-                                    .font(.subheadline)
-                                
-                                Spacer()
-                                
-                                HStack(spacing: 4) {
-                                    Text(predictedMood.icon)
-                                        .font(.title3)
-                                    Text(predictedMood.rawValue)
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            .accessibilityIdentifier("predicted-mood")
+                Form {
+                    // 标题
+                    Section(header: Text("标题")) {
+                        TextField("给您的日记起个标题", text: $title)
+                    }
+                    
+                    // 内容
+                    Section(header: Text("内容")) {
+                        TextEditor(text: $content)
+                            .frame(minHeight: 200)
+                    }
+                    
+                    // 标签
+                    Section(header: Text("标签")) {
+                        HStack {
+                            TextField("添加标签", text: $currentTag)
                             
-                            Divider()
-                            
-                            // 情感分析结果
-                            ForEach(emotionAnalysisManager.emotionResults.prefix(3)) { result in
-                                HStack {
-                                    Text(result.emotion)
-                                        .font(.subheadline)
-                                    
-                                    Spacer()
-                                    
-                                    Text(String(format: "%.1f%%", result.score * 100))
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                                .accessibilityIdentifier("emotion-result-\(result.emotion)")
+                            Button(action: addTag) {
+                                Text("添加")
+                                    .foregroundColor(ThemeColors.accent)
                             }
+                            .disabled(currentTag.isEmpty)
+                        }
+                        
+                        // 常用标签选择
+                        VStack(alignment: .leading) {
+                            Text("常用标签")
+                                .font(.caption)
+                                .foregroundColor(ThemeColors.secondaryText)
+                                .padding(.vertical, 4)
                             
-                            // 显示唤起度和价效度
-                            if let firstResult = emotionAnalysisManager.emotionResults.first {
-                                Divider()
-                                
-                                HStack {
-                                    Text("情绪唤起度")
-                                        .font(.subheadline)
-                                    
-                                    Spacer()
-                                    
-                                    Text(String(format: "%.1f%%", firstResult.arousal * 100))
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                HStack {
-                                    Text("情绪价效度")
-                                        .font(.subheadline)
-                                    
-                                    Spacer()
-                                    
-                                    Text(String(format: "%.1f%%", firstResult.valence * 100))
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(commonTags, id: \.self) { tag in
+                                        Button(action: {
+                                            if !tags.contains(tag) {
+                                                tags.append(tag)
+                                            }
+                                        }) {
+                                            Text(tag)
+                                                .font(.caption)
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 5)
+                                                .background(tags.contains(tag) ? ThemeColors.accent : Color.gray.opacity(0.2))
+                                                .foregroundColor(tags.contains(tag) ? .white : .primary)
+                                                .cornerRadius(8)
+                                        }
+                                    }
                                 }
                             }
                         }
+                        .padding(.vertical, 4)
+                        
+                        if !tags.isEmpty {
+                            Text("已选标签")
+                                .font(.caption)
+                                .foregroundColor(ThemeColors.secondaryText)
+                                .padding(.top, 8)
+                                .padding(.bottom, 4)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack {
+                                    ForEach(tags, id: \.self) { tag in
+                                        TagView(tag: tag) {
+                                            if let index = tags.firstIndex(of: tag) {
+                                                tags.remove(at: index)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            .frame(height: 35)
+                        }
                     }
-                    .accessibilityIdentifier("emotion-results-section")
+                    
+                    // 位置
+                    Section(header: Text("位置")) {
+                        Toggle("添加位置", isOn: $showLocationInput)
+                        
+                        if showLocationInput {
+                            TextField("输入位置", text: $location)
+                        }
+                    }
+                    
+                    // 其他选项
+                    Section {
+                        Toggle("收藏此日记", isOn: $isFavorite)
+                        
+                        Text("情绪分析：将在保存后自动分析日记内容的情绪")
+                            .font(.caption)
+                            .foregroundColor(ThemeColors.secondaryText)
+                    }
                 }
+                .scrollContentBackground(.hidden)
             }
-            .navigationTitle("新日记")
-            .navigationBarItems(
-                leading: Button("取消") {
-                    presentationMode.wrappedValue.dismiss()
+            .navigationTitle("新建日记")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
                 }
-                .accessibilityIdentifier("cancel-button"),
-                trailing: Button("保存") {
-                    saveEntry()
-                }
-                .disabled(title.isEmpty || content.isEmpty)
-                .accessibilityIdentifier("save-button")
-            )
-            .onChange(of: content) { oldValue, newValue in
-                if !newValue.isEmpty && newValue.count > 20 {
-                    performAnalysis()
+                
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        saveEntry()
+                    }
+                    .disabled(title.isEmpty || content.isEmpty)
                 }
             }
         }
     }
     
-    // 执行情感分析
-    private func performAnalysis() {
-        isAnalyzing = true
-        
-        // 使用本地模型进行分析
-        emotionAnalysisManager.analyzeEmotion(text: content)
-        
-        // 监听分析完成
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            isAnalyzing = false
-            
-            // 根据情感分析结果推断心情
-            predictMood()
-        }
-    }
-    
-    // 根据情感分析预测心情
-    private func predictMood() {
-        guard !emotionAnalysisManager.emotionResults.isEmpty else {
-            predictedMood = .neutral
-            return
-        }
-        
-        // 获取最主要的情感和价效度/唤起度
-        let topEmotion = emotionAnalysisManager.emotionResults.first!
-        let valence = topEmotion.valence
-        let arousal = topEmotion.arousal
-        
-        // 通过情感价效度和唤起度确定心情
-        if valence >= 0.7 {
-            if arousal >= 0.7 {
-                predictedMood = .excited  // 高价效高唤起 = 兴奋
-            } else {
-                predictedMood = .happy    // 高价效低唤起 = 开心
-            }
-        } else if valence <= 0.3 {
-            if arousal >= 0.7 {
-                predictedMood = .angry    // 低价效高唤起 = 愤怒
-            } else {
-                predictedMood = .sad      // 低价效低唤起 = 悲伤
-            }
-        } else {
-            if arousal >= 0.7 {
-                predictedMood = .anxious  // 中价效高唤起 = 焦虑
-            } else if arousal <= 0.3 {
-                predictedMood = .tired    // 中价效低唤起 = 疲惫，用作放松的替代
-            } else {
-                predictedMood = .neutral  // 中价效中唤起 = 平静
-            }
-        }
-        
-        // 考虑情感类型进行额外调整
-        let emotionType = topEmotion.emotion.lowercased()
-        if emotionType.contains("joy") || emotionType.contains("happy") || emotionType.contains("喜悦") {
-            predictedMood = .happy
-        } else if emotionType.contains("anger") || emotionType.contains("愤怒") {
-            predictedMood = .angry
-        } else if emotionType.contains("sad") || emotionType.contains("悲伤") {
-            predictedMood = .sad
-        } else if emotionType.contains("fear") || emotionType.contains("恐惧") {
-            predictedMood = .anxious
-        } else if emotionType.contains("relax") || emotionType.contains("calm") || emotionType.contains("放松") || emotionType.contains("平静") {
-            predictedMood = .neutral
+    // 添加标签
+    private func addTag() {
+        let trimmedTag = currentTag.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedTag.isEmpty && !tags.contains(trimmedTag) {
+            tags.append(trimmedTag)
+            currentTag = ""
         }
     }
     
     // 保存日记
     private func saveEntry() {
-        // 处理标签
-        let entryTags = tags.split(separator: ",").map { String($0.trimmingCharacters(in: .whitespaces)) }
-        
-        // 确保进行过情感分析
-        if emotionAnalysisManager.emotionResults.isEmpty && content.count > 20 {
-            performAnalysis()
-            // 等待分析完成
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                saveEntryAfterAnalysis(tags: entryTags)
-            }
-        } else {
-            saveEntryAfterAnalysis(tags: entryTags)
-        }
-    }
-    
-    // 分析完成后保存
-    private func saveEntryAfterAnalysis(tags: [String]) {
-        // 创建情感分析结果
-        var emotionResults: [EmotionAnalysisResult]?
-        var arousal: Double?
-        var valence: Double?
-        
-        if !emotionAnalysisManager.emotionResults.isEmpty {
-            emotionResults = emotionAnalysisManager.emotionResults.map { result in
-                EmotionAnalysisResult(
-                    emotion: result.emotion,
-                    score: result.score,
-                    arousal: result.arousal,
-                    valence: result.valence
-                )
-            }
-            
-            if let firstResult = emotionAnalysisManager.emotionResults.first {
-                arousal = firstResult.arousal
-                valence = firstResult.valence
-            }
-        }
-        
-        // 创建新日记
+        // 通过Apple NLP分析模型推断情绪 (暂时使用默认值，实际应该由服务分析)
         let newEntry = JournalEntry(
             title: title,
             content: content,
             date: Date(),
-            mood: predictedMood,  // 使用预测的心情
+            mood: .neutral, // 将默认使用neutral，之后会由情感分析服务更新
             tags: tags,
             isFavorite: isFavorite,
-            emotionAnalysisResults: emotionResults,
-            arousal: arousal,
-            valence: valence
+            location: showLocationInput ? location : nil
         )
         
-        // 保存并关闭
         onSave(newEntry)
         presentationMode.wrappedValue.dismiss()
     }
 }
 
+// 标签视图
+struct TagView: View {
+    let tag: String
+    let onDelete: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(tag)
+                .font(.subheadline)
+                .foregroundColor(.white)
+            
+            Button(action: onDelete) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.8))
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(ThemeColors.accent.opacity(0.8))
+        .cornerRadius(12)
+    }
+}
+
 struct NewJournalEntryView_Previews: PreviewProvider {
     static var previews: some View {
-        NewJournalEntryView(
-            emotionAnalysisManager: EmotionAnalysisManager(),
-            onSave: { _ in }
-        )
+        NewJournalEntryView() { _ in }
     }
 } 

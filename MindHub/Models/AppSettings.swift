@@ -1,165 +1,149 @@
 import Foundation
 import SwiftUI
 import Combine
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 class AppSettings: ObservableObject {
-    // 本地存储键
-    private enum Keys {
-        static let hasCompletedOnboarding = "hasCompletedOnboarding"
-        static let prefersDarkMode = "prefersDarkMode"
-        static let notificationsEnabled = "notificationsEnabled"
-        static let emotionAnalysisEnabled = "emotionAnalysisEnabled"
-        static let healthDataSyncEnabled = "healthDataSyncEnabled"
-        static let lastSyncDate = "lastSyncDate"
+    // 键值常量
+    private struct Keys {
+        static let isFirstLaunch = "isFirstLaunch"
+        static let reminderHour = "reminderHour"
+        static let reminderMinute = "reminderMinute"
+        static let appLockEnabled = "appLockEnabled"
+        static let biometricAuthEnabled = "biometricAuthEnabled"
+        static let locationTrackingEnabled = "locationTrackingEnabled"
         static let userName = "userName"
-        static let userBirthday = "userBirthday"
-        static let userGender = "userGender"
-        static let journalReminderTime = "journalReminderTime"
-        static let autoAnalyzeNewEntries = "autoAnalyzeNewEntries"
-        static let showEmotionQuadrantChart = "showEmotionQuadrantChart"
-        static let showEmotionTrendChart = "showEmotionTrendChart"
+        static let emotionAnalysisEnabled = "emotionAnalysisEnabled"
+        static let autoGenerateWeeklyReport = "autoGenerateWeeklyReport"
+        static let weeklyReportNotificationEnabled = "weeklyReportNotificationEnabled"
+        static let dailyReminderEnabled = "dailyReminderEnabled"
     }
     
-    // 应用程序设置
-    @Published var hasCompletedOnboarding: Bool {
+    // 首次启动标志
+    @Published var isFirstLaunch: Bool {
         didSet {
-            UserDefaults.standard.set(hasCompletedOnboarding, forKey: Keys.hasCompletedOnboarding)
+            UserDefaults.standard.set(isFirstLaunch, forKey: Keys.isFirstLaunch)
         }
     }
     
-    @Published var prefersDarkMode: Bool {
-        didSet {
-            UserDefaults.standard.set(prefersDarkMode, forKey: Keys.prefersDarkMode)
-        }
-    }
-    
-    @Published var notificationsEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(notificationsEnabled, forKey: Keys.notificationsEnabled)
-        }
-    }
-    
-    @Published var emotionAnalysisEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(emotionAnalysisEnabled, forKey: Keys.emotionAnalysisEnabled)
-        }
-    }
-    
-    @Published var healthDataSyncEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(healthDataSyncEnabled, forKey: Keys.healthDataSyncEnabled)
-        }
-    }
-    
-    @Published var lastSyncDate: Date? {
-        didSet {
-            UserDefaults.standard.set(lastSyncDate, forKey: Keys.lastSyncDate)
-        }
-    }
-    
+    // 用户名
     @Published var userName: String {
         didSet {
             UserDefaults.standard.set(userName, forKey: Keys.userName)
         }
     }
     
-    @Published var userBirthday: Date? {
+    // 每日提醒
+    @Published var dailyReminderEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(userBirthday, forKey: Keys.userBirthday)
+            UserDefaults.standard.set(dailyReminderEnabled, forKey: Keys.dailyReminderEnabled)
         }
     }
     
-    @Published var userGender: String {
+    // 提醒时间
+    @Published var reminderHour: Int {
         didSet {
-            UserDefaults.standard.set(userGender, forKey: Keys.userGender)
+            UserDefaults.standard.set(reminderHour, forKey: Keys.reminderHour)
         }
     }
     
-    @Published var journalReminderTime: Date {
+    @Published var reminderMinute: Int {
         didSet {
-            UserDefaults.standard.set(journalReminderTime, forKey: Keys.journalReminderTime)
+            UserDefaults.standard.set(reminderMinute, forKey: Keys.reminderMinute)
         }
     }
     
-    @Published var autoAnalyzeNewEntries: Bool {
+    // 安全设置
+    @Published var appLockEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(autoAnalyzeNewEntries, forKey: Keys.autoAnalyzeNewEntries)
+            UserDefaults.standard.set(appLockEnabled, forKey: Keys.appLockEnabled)
         }
     }
     
-    @Published var showEmotionQuadrantChart: Bool {
+    @Published var biometricAuthEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(showEmotionQuadrantChart, forKey: Keys.showEmotionQuadrantChart)
+            UserDefaults.standard.set(biometricAuthEnabled, forKey: Keys.biometricAuthEnabled)
         }
     }
     
-    @Published var showEmotionTrendChart: Bool {
+    // 位置跟踪
+    @Published var locationTrackingEnabled: Bool {
         didSet {
-            UserDefaults.standard.set(showEmotionTrendChart, forKey: Keys.showEmotionTrendChart)
+            UserDefaults.standard.set(locationTrackingEnabled, forKey: Keys.locationTrackingEnabled)
         }
     }
     
-    // 观察者取消令牌
-    private var cancellables = Set<AnyCancellable>()
+    // 情感分析
+    @Published var emotionAnalysisEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(emotionAnalysisEnabled, forKey: Keys.emotionAnalysisEnabled)
+        }
+    }
     
+    // 自动生成周报
+    @Published var autoGenerateWeeklyReport: Bool {
+        didSet {
+            UserDefaults.standard.set(autoGenerateWeeklyReport, forKey: Keys.autoGenerateWeeklyReport)
+        }
+    }
+    
+    // 周报通知
+    @Published var weeklyReportNotificationEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(weeklyReportNotificationEnabled, forKey: Keys.weeklyReportNotificationEnabled)
+        }
+    }
+    
+    // 初始化
     init() {
-        // 从 UserDefaults 加载设置
-        self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: Keys.hasCompletedOnboarding)
-        self.prefersDarkMode = UserDefaults.standard.bool(forKey: Keys.prefersDarkMode)
-        self.notificationsEnabled = UserDefaults.standard.bool(forKey: Keys.notificationsEnabled)
-        self.emotionAnalysisEnabled = UserDefaults.standard.bool(forKey: Keys.emotionAnalysisEnabled)
-        self.healthDataSyncEnabled = UserDefaults.standard.bool(forKey: Keys.healthDataSyncEnabled)
-        self.lastSyncDate = UserDefaults.standard.object(forKey: Keys.lastSyncDate) as? Date
+        self.isFirstLaunch = UserDefaults.standard.bool(forKey: Keys.isFirstLaunch)
+        self.reminderHour = UserDefaults.standard.integer(forKey: Keys.reminderHour)
+        self.reminderMinute = UserDefaults.standard.integer(forKey: Keys.reminderMinute)
+        self.appLockEnabled = UserDefaults.standard.bool(forKey: Keys.appLockEnabled)
+        self.biometricAuthEnabled = UserDefaults.standard.bool(forKey: Keys.biometricAuthEnabled)
+        self.locationTrackingEnabled = UserDefaults.standard.bool(forKey: Keys.locationTrackingEnabled)
         self.userName = UserDefaults.standard.string(forKey: Keys.userName) ?? ""
-        self.userBirthday = UserDefaults.standard.object(forKey: Keys.userBirthday) as? Date
-        self.userGender = UserDefaults.standard.string(forKey: Keys.userGender) ?? "未指定"
+        self.emotionAnalysisEnabled = UserDefaults.standard.bool(forKey: Keys.emotionAnalysisEnabled)
+        self.autoGenerateWeeklyReport = UserDefaults.standard.bool(forKey: Keys.autoGenerateWeeklyReport)
+        self.weeklyReportNotificationEnabled = UserDefaults.standard.bool(forKey: Keys.weeklyReportNotificationEnabled)
+        self.dailyReminderEnabled = UserDefaults.standard.bool(forKey: Keys.dailyReminderEnabled)
         
-        // 加载情感分析设置
-        self.autoAnalyzeNewEntries = UserDefaults.standard.object(forKey: Keys.autoAnalyzeNewEntries) as? Bool ?? true
-        self.showEmotionQuadrantChart = UserDefaults.standard.object(forKey: Keys.showEmotionQuadrantChart) as? Bool ?? true
-        self.showEmotionTrendChart = UserDefaults.standard.object(forKey: Keys.showEmotionTrendChart) as? Bool ?? true
-        
-        if let storedTime = UserDefaults.standard.object(forKey: Keys.journalReminderTime) as? Date {
-            self.journalReminderTime = storedTime
-        } else {
-            // 默认提醒时间为晚上9点
-            var components = DateComponents()
-            components.hour = 21
-            components.minute = 0
-            self.journalReminderTime = Calendar.current.date(from: components) ?? Date()
+        // 设置初始值（如果是首次启动）
+        if !UserDefaults.standard.bool(forKey: Keys.isFirstLaunch) {
+            setDefaultValues()
         }
+    }
+    
+    // 设置默认值
+    private func setDefaultValues() {
+        isFirstLaunch = true
+        reminderHour = 20  // 默认提醒时间：晚上8点
+        reminderMinute = 0
+        appLockEnabled = false
+        biometricAuthEnabled = false
+        locationTrackingEnabled = true
+        emotionAnalysisEnabled = true
+        autoGenerateWeeklyReport = true
+        weeklyReportNotificationEnabled = true
+        dailyReminderEnabled = true
     }
     
     // 重置所有设置
     func resetAllSettings() {
-        hasCompletedOnboarding = false
-        prefersDarkMode = false
-        notificationsEnabled = true
-        emotionAnalysisEnabled = true
-        healthDataSyncEnabled = true
-        lastSyncDate = nil
-        userName = ""
-        userBirthday = nil
-        userGender = "未指定"
-        autoAnalyzeNewEntries = true
-        showEmotionQuadrantChart = true
-        showEmotionTrendChart = true
-        
-        var components = DateComponents()
-        components.hour = 21
-        components.minute = 0
-        journalReminderTime = Calendar.current.date(from: components) ?? Date()
+        setDefaultValues()
     }
-    
-    // 完成引导流程
-    func completeOnboarding() {
-        hasCompletedOnboarding = true
-    }
-    
-    // 更新用户信息
-    func updateUserInfo(name: String, birthday: Date?, gender: String) {
-        userName = name
-        userBirthday = birthday
-        userGender = gender
-    }
-} 
+}
+
+// 字体大小枚举 - 保留为固定值
+enum FontSize {
+    static let textSize: CGFloat = 16
+    static let headingSize: CGFloat = 22
+    static let titleSize: CGFloat = 28
+    static let captionSize: CGFloat = 12
+}
+
+// 不要在这里定义 Color.init(hex:) 方法，因为在 ThemeColors.swift 中已经定义过 

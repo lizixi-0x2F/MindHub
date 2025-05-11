@@ -1,81 +1,45 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var healthKitManager: HealthKitManager
-    @EnvironmentObject var emotionAnalysisManager: EmotionAnalysisManager
-    @EnvironmentObject var appSettings: AppSettings
-    
+    @EnvironmentObject var journalViewModel: JournalViewModel
     @State private var selectedTab = 0
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            DashboardView()
-                .tabItem {
-                    VStack {
-                        Image(systemName: "chart.bar.fill")
-                        Text("仪表盘")
-                    }
-                }
-                .tag(0)
-                .accessibility(identifier: "dashboard-tab")
-                .accessibilityLabel("仪表盘")
-            
+            // 日记视图
             JournalView()
                 .tabItem {
-                    VStack {
-                        Image(systemName: "book.fill")
-                        Text("日记")
-                    }
+                    Label("日记 📝", systemImage: "book.fill")
+                }
+                .tag(0)
+            
+            // 统计视图
+            DashboardView()
+                .tabItem {
+                    Label("统计 📊", systemImage: "chart.bar.fill")
                 }
                 .tag(1)
-                .accessibility(identifier: "journal-tab")
-                .accessibilityLabel("日记")
             
-            EmotionAnalysisView()
-                .tabItem {
-                    VStack {
-                        Image(systemName: "heart.fill")
-                        Text("情绪")
-                    }
-                }
-                .tag(2)
-                .accessibility(identifier: "emotion-tab")
-                .accessibilityLabel("情绪")
-                
-            HealthDataView()
-                .tabItem {
-                    VStack {
-                        Image(systemName: "heart.text.square.fill")
-                        Text("健康")
-                    }
-                }
-                .tag(3)
-                .accessibility(identifier: "health-tab")
-                .accessibilityLabel("健康")
-                
+            // 设置视图
             SettingsView()
                 .tabItem {
-                    VStack {
-                        Image(systemName: "gear")
-                        Text("设置")
-                    }
+                    Label("设置 ⚙️", systemImage: "gear")
                 }
-                .tag(4)
-                .accessibility(identifier: "settings-tab")
-                .accessibilityLabel("设置")
+                .tag(2)
         }
-        .accessibilityIdentifier("main-tab-view")
+        .tint(ThemeColors.accent) // 使用主题颜色
         .onAppear {
-            // 确保UI测试能正确识别TabBar
-            UITabBar.appearance().isAccessibilityElement = true
-            UITabBar.appearance().accessibilityTraits = .tabBar
+            // 加载日记数据
+            journalViewModel.loadEntries()
             
-            // 请求健康数据权限
-            healthKitManager.requestAuthorization()
+            // 设置TabBar样式，使用GitHub风格的深色
+            let appearance = UITabBarAppearance()
+            appearance.configureWithDefaultBackground()
+            appearance.backgroundColor = UIColor(ThemeColors.base)
             
-            // 设置默认选项卡
-            if !appSettings.hasCompletedOnboarding {
-                selectedTab = 4 // 设置选项卡
+            UITabBar.appearance().standardAppearance = appearance
+            if #available(iOS 15.0, *) {
+                UITabBar.appearance().scrollEdgeAppearance = appearance
             }
         }
     }
@@ -84,8 +48,7 @@ struct ContentView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
-            .environmentObject(HealthKitManager())
-            .environmentObject(EmotionAnalysisManager())
-            .environmentObject(AppSettings())
+            .environmentObject(JournalViewModel())
+            .preferredColorScheme(.dark)
     }
 } 

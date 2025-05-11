@@ -101,10 +101,9 @@ import os.log
         if #available(iOS 15.0, macOS 12.0, *) {
             // 测试Apple NLP功能
             let testText = "今天天气真好，我很开心。"
-            let options: NLTagger.Options = [.omitPunctuation, .omitBackground]
             sentimentTagger.string = testText
             
-            if let sentiment = sentimentTagger.tag(at: testText.startIndex, unit: .paragraph, scheme: .sentimentScore, options: options).0,
+            if let sentiment = sentimentTagger.tag(at: testText.startIndex, unit: .paragraph, scheme: .sentimentScore).0,
                let score = Double(sentiment.rawValue) {
                 logger.info("Apple NLP情感分析可用，测试得分: \(score)")
                 preferredMethod = .appleNLP
@@ -156,12 +155,11 @@ import os.log
     @available(iOS 15.0, macOS 12.0, *)
     private func analyzeWithAppleNLP(_ text: String) -> EmotionResult {
         sentimentTagger.string = text
-        let options: NLTagger.Options = [.omitPunctuation, .omitBackground]
         
         // 获取整体情感得分
         var sentimentScore: Double = 0.0
         
-        if let sentiment = sentimentTagger.tag(at: text.startIndex, unit: .paragraph, scheme: .sentimentScore, options: options).0,
+        if let sentiment = sentimentTagger.tag(at: text.startIndex, unit: .paragraph, scheme: .sentimentScore).0,
            let score = Double(sentiment.rawValue) {
             // Apple情感得分范围: -1.0(负面) 到 1.0(正面)
             sentimentScore = score
@@ -174,14 +172,18 @@ import os.log
         var varianceSum: Double = 0.0
         var paragraphCount: Int = 0
         
-        sentimentTagger.enumerateTags(in: NSRange(location: 0, length: text.utf16.count), unit: .paragraph, scheme: .sentimentScore, options: options) { tag, tokenRange in
-            if let sentiment = tag, let score = Double(sentiment.rawValue) {
-                // 计算与整体得分的差异
-                let variance = abs(score - sentimentScore)
-                varianceSum += variance
-                paragraphCount += 1
+        // 使用标准的文本范围枚举方式
+        text.enumerateSubstrings(in: text.startIndex..<text.endIndex, options: .byParagraphs) { [self] substring, substringRange, _, _ in
+            if let paragraph = substring {
+                self.sentimentTagger.string = paragraph
+                if let sentiment = self.sentimentTagger.tag(at: paragraph.startIndex, unit: .paragraph, scheme: .sentimentScore).0,
+                   let score = Double(sentiment.rawValue) {
+                    // 计算与整体得分的差异
+                    let variance = abs(score - sentimentScore)
+                    varianceSum += variance
+                    paragraphCount += 1
+                }
             }
-            return true
         }
         
         // 计算平均情感波动作为唤起度指标
@@ -326,5 +328,4 @@ import os.log
     private func findPrimaryEmotion(counts: [String: Int]) -> String {
         return counts.max(by: { $0.value < $1.value })?.key ?? "中性"
     }
-} 
 } 
